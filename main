@@ -1,0 +1,167 @@
+import numpy as np
+import matplotlib.pyplot as plt
+
+# --- 1. Определение физики задачи ---
+
+def A(t):
+    return np.cosh(t)
+
+def B(t):
+    return np.cos(t)
+
+def velocity_field(t, point):
+    """
+    Вычисляет вектор скорости v = (vx, vy) в точке point = (x, y) в момент времени t.
+    v1 = -A(t) * x1
+    v2 =  B(t) * x2
+    """
+    x, y = point
+    vx = -A(t) * x
+    vy =  B(t) * y
+    return np.array([vx, vy])
+
+# --- 2. Реализация метода Рунге-Кутты (RK4) согласно таблице Бутчера ---
+
+def rk4_step(func, t, y, h):
+    """
+    Один шаг интегрирования методом Рунге-Кутты 4-го порядка.
+    Таблица Бутчера из задания:
+    0   |
+    1/2 | 1/2
+    1/2 | 0   1/2
+    1   | 0   0   1
+    -----------------
+        | 1/6 2/6 2/6 1/6
+    """
+    k1 = func(t, y)
+    k2 = func(t + 0.5 * h, y + 0.5 * h * k1)
+    k3 = func(t + 0.5 * h, y + 0.5 * h * k2)
+    k4 = func(t + h, y + h * k3)
+    
+    return y + (h / 6.0) * (k1 + 2*k2 + 2*k3 + k4)
+
+def solve_trajectory(initial_point, t_start, t_end, dt):
+    """
+    Рассчитывает траекторию одной материальной точки.
+    """
+    t_values = np.arange(t_start, t_end, dt)
+    points = [np.array(initial_point)]
+    
+    current_point = np.array(initial_point)
+    for t in t_values[:-1]:
+        current_point = rk4_step(velocity_field, t, current_point, dt)
+        points.append(current_point)
+        
+    return t_values, np.array(points)
+
+# --- 3. Генерация материального тела ---
+
+def generate_body_points(r_min, r_max, theta_min, theta_max, nr=10, ntheta=20):
+    """
+    Генерирует сетку точек для кольцевого сектора.
+    Для условия "не касается осей" используем небольшие отступы в углах.
+    """
+    r = np.linspace(r_min, r_max, nr)
+    theta = np.linspace(theta_min, theta_max, ntheta)
+    
+    points = []
+    # Создаем сетку
+    rr, th = np.meshgrid(r, theta)
+    
+    # Перевод в декартовы координаты
+    xx = rr * np.cos(th)
+    yy = rr * np.sin(th)
+    
+    # Превращаем в список точек [x, y]
+    for x_val, y_val in zip(xx.flatten(), yy.flatten()):
+        points.append([x_val, y_val])
+        
+    return np.array(points)
+
+# --- 4. Основной блок выполнения и визуализации ---
+
+# Параметры задачи
+R_MIN, R_MAX = 1.0, 2.0
+# Отступ epsilon, чтобы тело не касалось осей (строго внутри 1 четверти)
+EPSILON = 0.05 
+THETA_MIN, THETA_MAX = 0 + EPSILON, np.pi/2 - EPSILON
+
+T_START = 0.0
+T_END = 1.5 # Время моделирования
+DT = 0.01
+
+# Генерируем тело
+body_points_0 = generate_body_points(R_MIN, R_MAX, THETA_MIN, THETA_MAX, nr=5, ntheta=10)
+
+# 4.1 Расчет траекторий для всех точек тела
+trajectories = []
+final_points = []
+
+for p0 in body_points_0:
+    t_hist, p_hist = solve_trajectory(p0, T_START, T_END, DT)
+    trajectories.append(p_hist)
+    final_points.append(p_hist[-1])
+
+final_points = np.array(final_points)
+
+# --- ГРАФИКИ ---
+
+plt.figure(figsize=(15, 10))
+
+# График 1: Траектории и деформация тела
+plt.subplot(2, 2, 1)
+plt.title("Траектории движения и деформация тела")
+# Рисуем начальное положение
+plt.scatter(body_points_0[:, 0], body_points_0[:, 1], c='blue', s=10, label='t=0 (Начало)')
+# Рисуем конечное положение
+plt.scatter(final_points[:, 0], final_points[:, 1], c='red', s=10, label=f't={T_END} (Конец)')
+
+# Рисуем линии траекторий (выборочно, чтобы не засорять график)
+for i in range(0, len(trajectories), 2): 
+    plt.plot(trajectories[i][:, 0], trajectories[i][:, 1], 'k-', alpha=0.3, linewidth=0.5)
+
+plt.xlabel("x")
+plt.ylabel("y")
+plt.axis('equal')
+plt.grid(True)
+plt.legend()
+
+# График 2, 3, 4: Поля скоростей и линии тока в разные моменты времени
+# Выберем 3 момента времени: начало, середина, конец
+time_snapshots = [0.0, 0.75, 1.5]
+plot_indices = [2, 3, 4]
+
+# Создаем сетку для отображения поля скоростей (область чуть шире тела)
+grid_x = np.linspace(0, 2.5, 20)
+grid_y = np.linspace(0, 2.5, 20)
+X, Y = np.meshgrid(grid_x, grid_y)
+
+for idx, t_snap in zip(plot_indices, time_snapshots):
+    plt.subplot(2, 2, idx)
+    
+    # Вычисляем векторы скоростей в узлах сетки для момента t_snap
+    U = -A(t_snap) * X
+    V =  B(t_snap) * Y
+    
+    # Рисуем линии тока (streamlines)
+    strm = plt.streamplot(X, Y, U, V, color=np.sqrt(U**2 + V**2), cmap='viridis', density=1.0)
+    
+    # Для наглядности добавим текущее положение тела (примерно)
+    # Нужно рассчитать положение тела именно в момент t_snap
+    body_at_t = []
+    for p0 in body_points_0:
+        _, p_curr = solve_trajectory(p0, 0, t_snap, DT) # Интегрируем до текущего момента
+        body_at_t.append(p_curr[-1])
+    body_at_t = np.array(body_at_t)
+    
+    plt.scatter(body_at_t[:,0], body_at_t[:,1], color='red', s=5, alpha=0.6, label='Тело')
+    
+    plt.title(f"Линии тока и поле скоростей при t = {t_snap}")
+    plt.xlabel("x")
+    plt.ylabel("y")
+    plt.xlim(0, 2.5)
+    plt.ylim(0, 2.5)
+    plt.grid(True)
+
+plt.tight_layout()
+plt.show()
