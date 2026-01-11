@@ -12,4 +12,8 @@ class AnalyticalField(IVectorField):
         self.fx = func_x
         self.fy = func_y
 
-
+    def get_velocity(self, t: float, coords: np.ndarray) -> np.ndarray:
+        x, y = coords
+        vx = self.fx(t, x)
+        vy = self.fy(t, y)
+        return np.array([vx, vy])
