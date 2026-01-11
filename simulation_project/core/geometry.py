@@ -1,7 +1,7 @@
 import numpy as np
 
 class Point:
-    """Описывает просто точку в пространстве."""
+    """Описывает просто точку в  пространстве."""
     def __init__(self, x: float, y: float):
         self.coords = np.array([x, y], dtype=float)
 
