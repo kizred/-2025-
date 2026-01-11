@@ -48,7 +48,4 @@ class Body:
         # Оборачиваем вызов метода поля в лямбду или функцию
         d_dt = lambda time, y: field.get_velocity(time, y)
 
-        for p in self.points:
-            # Вычисляем новое положение
-            new_pos = solver.step(d_dt, t, p.coords, dt)
-            p.move(new_pos)
+
