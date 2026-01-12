@@ -1,5 +1,6 @@
 import matplotlib.pyplot as plt
 import numpy as np
+from matplotlib.patches import FancyArrowPatch
 from core.matter import Body
 from core.base import IVectorField
 
@@ -30,22 +31,68 @@ class Plotter:
             self.ax_body.set_ylim(min(ys) - margin_y, max(ys) + margin_y)
 
     def plot_trajectories(self, body: Body):
-        """Рисует траектории на втором графике"""
+        """Рисует траектории на втором графике с направляющими стрелками"""
         all_x, all_y = [], []
+        arrow_data = []  # Для хранения данных стрелок: (x, y, dx, dy)
         
         for p in body.points:
             path = p.trajectory.get_path_as_array()
-            if len(path) > 0:
+            if len(path) > 1:  # Нужно минимум 2 точки для траектории
+                # Рисуем основную линию траектории
                 self.ax_traj.plot(path[:, 0], path[:, 1], 'b-', alpha=0.7, linewidth=1.5)
+                
+                # Собираем все точки для расчета границ
                 all_x.extend(path[:, 0])
                 all_y.extend(path[:, 1])
+                
+                # Добавляем стрелки в ключевых точках траектории
+                num_arrows = max(1, len(path) // 15)  # Примерно 1 стрелка на 15 точек
+                arrow_positions = np.linspace(0, len(path) - 2, num_arrows, dtype=int)
+                
+                for pos in arrow_positions:
+                    x_start = path[pos, 0]
+                    y_start = path[pos, 1]
+                    x_end = path[pos + 1, 0]
+                    y_end = path[pos + 1, 1]
+                    
+                    # Вычисляем направление и нормализуем для стандартной длины стрелки
+                    dx = x_end - x_start
+                    dy = y_end - y_start
+                    length = np.hypot(dx, dy)
+                    
+                    if length > 0:
+                        # Нормализуем и задаем фиксированную длину стрелки (3% от диапазона координат)
+                        arrow_length = 0.03 * max(
+                            (max(all_x) - min(all_x)) if all_x else 1,
+                            (max(all_y) - min(all_y)) if all_y else 1
+                        )
+                        dx_norm = dx / length * arrow_length
+                        dy_norm = dy / length * arrow_length
+                        
+                        arrow_data.append((x_start + dx/2, y_start + dy/2, dx_norm, dy_norm))
         
-        # Устанавливаем границы на основе всех точек траекторий
+        # Рисуем все стрелки одним вызовом для эффективности
+        if arrow_data:
+            xs, ys, dxs, dys = zip(*arrow_data)
+            self.ax_traj.quiver(
+                xs, ys, dxs, dys,
+                color='darkred',
+                scale=1,
+                scale_units='xy',
+                angles='xy',
+                width=0.005,
+                headwidth=5,
+                headlength=6,
+                alpha=0.8,
+                zorder=5
+            )
+        
+        # Устанавливаем границы с учетом всех точек и стрелок
         if all_x and all_y:
             x_range = max(all_x) - min(all_x)
             y_range = max(all_y) - min(all_y)
-            margin_x = x_range * 0.1 if x_range > 0 else 1
-            margin_y = y_range * 0.1 if y_range > 0 else 1
+            margin_x = max(x_range * 0.15, 0.1)  # Минимальный отступ
+            margin_y = max(y_range * 0.15, 0.1)
             self.ax_traj.set_xlim(min(all_x) - margin_x, max(all_x) + margin_x)
             self.ax_traj.set_ylim(min(all_y) - margin_y, max(all_y) + margin_y)
 
@@ -96,7 +143,7 @@ class Plotter:
         
         # Настройки для графика траекторий
         self.ax_traj.grid(True, linestyle='--', alpha=0.7)
-        self.ax_traj.set_title('Траектории движения точек', fontsize=12, pad=10)
+        self.ax_traj.set_title('Траектории движения точек (со стрелками направления)', fontsize=12, pad=10)
         self.ax_traj.set_xlabel('X', fontsize=10)
         self.ax_traj.set_ylabel('Y', fontsize=10)
         self.ax_traj.set_aspect('equal', adjustable='datalim')
