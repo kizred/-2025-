@@ -21,11 +21,12 @@ class Plotter:
         ys = [p.y for p in body.points]
         self.ax_body.scatter(xs, ys, c=color, label=label, s=25, edgecolor='k', zorder=3)
         
-        # Автоматически устанавливаем границы с запасом 20%
+        # Автоматически устанавливаем границы с УДВОЕННЫМ диапазоном по X (уменьшение масштаба на 100%)
         if xs and ys:
             x_range = max(xs) - min(xs)
             y_range = max(ys) - min(ys)
-            margin_x = x_range * 0.2 if x_range > 0 else 1
+            # Увеличиваем отступ по X в 2 раза (100% от текущего диапазона)
+            margin_x = x_range * 1.0 if x_range > 0 else 1
             margin_y = y_range * 0.2 if y_range > 0 else 1
             self.ax_body.set_xlim(min(xs) - margin_x, max(xs) + margin_x)
             self.ax_body.set_ylim(min(ys) - margin_y, max(ys) + margin_y)
@@ -87,11 +88,12 @@ class Plotter:
                 zorder=5
             )
         
-        # Устанавливаем границы с учетом всех точек и стрелок
+        # Устанавливаем границы с УДВОЕННЫМ диапазоном по X (уменьшение масштаба на 100%)
         if all_x and all_y:
             x_range = max(all_x) - min(all_x)
             y_range = max(all_y) - min(all_y)
-            margin_x = max(x_range * 0.15, 0.1)  # Минимальный отступ
+            # Увеличиваем отступ по X в 2 раза (100% от текущего диапазона)
+            margin_x = max(x_range * 1.0, 0.1)  # Минимальный отступ 0.1
             margin_y = max(y_range * 0.15, 0.1)
             self.ax_traj.set_xlim(min(all_x) - margin_x, max(all_x) + margin_x)
             self.ax_traj.set_ylim(min(all_y) - margin_y, max(all_y) + margin_y)
@@ -154,6 +156,9 @@ class Plotter:
         self.ax_stream.set_xlabel('X', fontsize=10)
         self.ax_stream.set_ylabel('Y', fontsize=10)
         self.ax_stream.set_aspect('equal', adjustable='box')
+        
+        # Уменьшаем высоту отступов для компенсации увеличенного масштаба
+        self.fig.subplots_adjust(hspace=0.35)
         
         # Отображаем всё вместе
         plt.show()
