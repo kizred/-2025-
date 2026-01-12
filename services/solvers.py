@@ -2,9 +2,7 @@ import numpy as np
 from core.base import ISolver
 
 class RungeKutta4(ISolver):
-    """
-    Реализация метода  RK4 согласно таблице Бутчера.
-    """
+    
     def step(self, func, t: float, y: np.ndarray, dt: float) -> np.ndarray:
         # k1 = f(t, y)
         k1 = func(t, y)
