@@ -2,17 +2,15 @@ import numpy as np
 from typing import Callable
 from core.base import IVectorField
 
-class AnalyticalField(IVectorField):
-    """
-    Поле, задаваемое аналитическими функциями.
-    """
+class AnalyticalField(IVectorField):#физ поле
+   
     def __init__(self, func_x: Callable[[float, float], float], 
                        func_y: Callable[[float, float], float]):
         # Принимаем функции (лямбды) в конструктор
         self.fx = func_x
         self.fy = func_y
 
-    def get_velocity(self, t: float, coords: np.ndarray) -> np.ndarray:
+    def get_velocity(self, t: float, coords: np.ndarray) -> np.ndarray:#вектор скорости
         x, y = coords
         vx = self.fx(t, x)
         vy = self.fy(t, y)
